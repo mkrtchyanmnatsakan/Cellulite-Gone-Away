@@ -1,5 +1,6 @@
 package com.wildcard.cellulite.userInterface;
 
+import android.annotation.SuppressLint;
 import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -23,22 +24,24 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.pixplicity.easyprefs.library.Prefs;
 import com.wildcard.cellulite.R;
 import com.wildcard.cellulite.constantValue.Constants;
+import com.wildcard.cellulite.model.DateForStatistic;
 import com.wildcard.cellulite.receiver.AlarmReceiver;
 
 import org.angmarch.views.NiceSpinner;
 
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+
+import br.vince.easysave.EasySave;
 
 public class MainActivity extends BaseActivity implements View.OnClickListener,AdapterView.OnItemSelectedListener {
 
@@ -67,6 +70,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
 
 
 
+    @SuppressLint("SimpleDateFormat")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -75,12 +79,24 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
 
         String dataCreate = Prefs.getString(Constants.CREATE_APP_DATA,"");
 
-        Toast.makeText(this, dataCreate, Toast.LENGTH_SHORT).show();
+       // Toast.makeText(this, dataCreate, Toast.LENGTH_SHORT).show();
 
         if(dataCreate == null || dataCreate.isEmpty()){
-            String dataCreated = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            @SuppressLint("SimpleDateFormat") String dataCreated = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
             Prefs.putString(Constants.CREATE_APP_DATA,dataCreated);
-          //  Toast.makeText(this, "new data " + dataCreated, Toast.LENGTH_SHORT).show();
+            @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            Date strDate = null;
+            try {
+                strDate = sdf.parse(dataCreated);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+
+
+
+
+            //  Toast.makeText(this, "new data " + dataCreated, Toast.LENGTH_SHORT).show();
         }else {
             validateDateTime(dataCreate);
         }
@@ -114,7 +130,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
     }
 
     private void validateDateTime(String time){
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date strDate = null;
         try {
             strDate = sdf.parse(time);
@@ -127,7 +143,22 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
         long difDay =   defTime / (24 * 60 * 60 * 1000);
 
         if(difDay >= 1){
-            String newDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            @SuppressLint("SimpleDateFormat") String newDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            @SuppressLint("SimpleDateFormat") final String newDateForSaveList = new SimpleDateFormat("MMM-dd").format(new Date());
+            //Toast.makeText(this, newDateForSaveList, Toast.LENGTH_SHORT).show();
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(
+                            Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
+                    if(saveList.size()>1){
+                        saveList.add(new DateForStatistic(newDateForSaveList,saveList.get(saveList.size()-1).getValue()+5));
+
+                    }
+                }
+            },150);
+
             Prefs.putString(Constants.CREATE_APP_DATA,newDate);
         }
 
@@ -154,6 +185,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
 
         new CountDownTimer(Seconds* 1000, 1000) {
 
+            @SuppressLint("DefaultLocale")
             public void onTick(long millisUntilFinished) {
                 long seconds =  millisUntilFinished / 1000;
                 long minutes = seconds / 60;
@@ -169,6 +201,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
                 inactiveLayout.setVisibility(View.VISIBLE);
                 playScenesRelative.setClickable(false);
                 playScenesRelative.setEnabled(false);
+
+                @SuppressLint("SimpleDateFormat") String saveDateString = new SimpleDateFormat("MMM-dd").format(new java.util.Date());
+
+                List<DateForStatistic> dateForStatisticLists = new ArrayList<>();
+                dateForStatisticLists.add(new DateForStatistic(saveDateString,5f));
+
+                new EasySave(getBaseContext()).saveList(Constants.SAVE_DATE_FOR_STATISTICS, dateForStatisticLists);
 
                 createAlarmRecever();
                 handler.removeCallbacksAndMessages(null);
@@ -224,9 +263,23 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
         homeRelativeLayout.setOnClickListener(this);
         statisticsRelativeLayout.setOnClickListener(this);
         infoRelativeLayout.setOnClickListener(this);
-        videoRelativeLayout.setOnClickListener(this);
+       // videoRelativeLayout.setOnClickListener(this);
 
         setUpBlurEffect();
+
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
+              long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
+                long convertMilisecond = timeSecund;
+
+                timeTextView.setText(convertDate(String.valueOf(convertMilisecond),"mm:ss"));
+
+            }
+        },500);
     }
 
     private void setUpBlurEffect(){
@@ -332,13 +385,36 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
     }
 
 
+private long parseStringToSecondAndSecund(String time, long seconds){
+    //@SuppressLint("SimpleDateFormat") DateFormat format=new SimpleDateFormat("mm:ss");
+// format.parse(timee).getSeconds();
+    //int seconds = format.parse(time).getHours()*3600+format.parse(time).getMinutes()*60+format.parse(time).getSeconds();
 
+    String[] parts = time.split(":");
+    long millis = TimeUnit.MINUTES.toSeconds(Long.parseLong(parts[0])) + Long.parseLong(parts[1]);
+
+    System.out.println(millis+" in Seconds");
+
+//System.out.println(seconds + " Converted to Seconds");
+    long s_hour = TimeUnit.SECONDS.toHours(millis);
+    long tempSec = millis - (TimeUnit.HOURS.toSeconds(s_hour));
+    // long s_minute = TimeUnit.SECONDS.toMinutes(tempSec) ;
+    // long tempSec1 = tempSec - (TimeUnit.MINUTES.toSeconds(s_minute));
+    long s_seconds = TimeUnit.SECONDS.toSeconds(tempSec);
+//        System.out.println(s_hour  + " in Hours");
+//        System.out.println(tempSec+" Which is a reminder");
+//        System.out.println(s_minute + " in Minutes");
+//        System.out.println(tempSec1+" in Seconds");
+
+    return s_seconds + seconds;
+
+}
 
     private long parseStringToSecond(String time) throws ParseException{
 
-        DateFormat format=new SimpleDateFormat("mm:ss");
+       // @SuppressLint("SimpleDateFormat") DateFormat format=new SimpleDateFormat("mm:ss");
 // format.parse(timee).getSeconds();
-        int seconds = format.parse(time).getHours()*3600+format.parse(time).getMinutes()*60+format.parse(time).getSeconds();
+        //int seconds = format.parse(time).getHours()*3600+format.parse(time).getMinutes()*60+format.parse(time).getSeconds();
 
         String[] parts = time.split(":");
         long millis = TimeUnit.MINUTES.toSeconds(Long.parseLong(parts[0])) + Long.parseLong(parts[1]);
@@ -425,6 +501,14 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
                 break;
 
             case R.id.play_scenes_relative:
+
+                playScenesRelative.setClickable(false);
+                playScenesRelative.setEnabled(false);
+
+                spinnerRelative.setEnabled(false);
+                spinnerRelative.setClickable(false);
+                spinner.setClickable(false);
+                spinner.setEnabled(false);
 
                 try {
 
@@ -521,7 +605,20 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
         }else {
             timeTextView.setText("02:25");
         }
-        Toast.makeText(this, spinnerList.get(position), Toast.LENGTH_SHORT).show();
+
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+
+                List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
+                long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
+                long convertMilisecond = timeSecund;
+
+                timeTextView.setText(convertDate(String.valueOf(convertMilisecond),"mm:ss"));
+
+            }
+        },500);
+       // Toast.makeText(this, spinnerList.get(position), Toast.LENGTH_SHORT).show();
 
     }
 

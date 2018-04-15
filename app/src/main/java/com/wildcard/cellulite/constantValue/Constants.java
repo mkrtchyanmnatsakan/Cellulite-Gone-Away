@@ -8,4 +8,5 @@ public interface Constants {
 
     String CREATE_APP_DATA = "CREATE_APP_DATA";
     String IS_INACTIVE = "IS_INACTIVE";
+    String SAVE_DATE_FOR_STATISTICS = "SAVE_DATE_FOR_STATISTICS";
 }

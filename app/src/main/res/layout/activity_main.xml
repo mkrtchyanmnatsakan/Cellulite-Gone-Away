@@ -179,6 +179,7 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:visibility="gone"
                 android:id="@+id/video_relative_layout"
                 android:layout_weight="1"
                 android:layout_width="0dp"

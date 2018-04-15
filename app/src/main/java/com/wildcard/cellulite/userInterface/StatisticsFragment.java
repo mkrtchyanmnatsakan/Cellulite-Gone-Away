@@ -15,13 +15,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.wildcard.cellulite.R;
+import com.wildcard.cellulite.constantValue.Constants;
+import com.wildcard.cellulite.model.DateForStatistic;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import br.vince.easysave.EasySave;
 
 /**
  * Created by mno on 4/11/18.
@@ -31,7 +37,7 @@ public class StatisticsFragment extends Fragment {
 
     private static BaseActivity sBaseActivity;
     private ImageView imageViewStatistics;
-    private BarChart barGraph;
+    private HorizontalBarChart barGraph;
 
     public static StatisticsFragment newInstance(BaseActivity baseActivity) {
         sBaseActivity = baseActivity;
@@ -58,15 +64,7 @@ public class StatisticsFragment extends Fragment {
     }
 
 
-    @Override
-    public void onResume() {
 
-
-        imageViewStatistics.setImageDrawable(sBaseActivity.getResources().getDrawable(R.drawable.cellulite_background));
-        setUpBlurEffect();
-
-        super.onResume();
-    }
 
     private void setUpBlurEffect(){
         BitmapDrawable drawable = (BitmapDrawable) imageViewStatistics.getDrawable();
@@ -77,58 +75,78 @@ public class StatisticsFragment extends Fragment {
 
     private void initView(View view){
         imageViewStatistics = view.findViewById(R.id.image_view_statistics);
+        imageViewStatistics.setImageDrawable(sBaseActivity.getResources().getDrawable(R.drawable.cellulite_background));
+      //  setUpBlurEffect();
         barGraph = view.findViewById(R.id.bar_graph);
 
-        ArrayList<BarEntry> barEntries = new ArrayList<>();
-        barEntries.add(new BarEntry(20f,0));
-        barEntries.add(new BarEntry(25f,1));
-        barEntries.add(new BarEntry(30f,2));
-        barEntries.add(new BarEntry(35f,3));
-        barEntries.add(new BarEntry(40f,4));
-        barEntries.add(new BarEntry(20f,5));
-        barEntries.add(new BarEntry(25f,6));
-        barEntries.add(new BarEntry(30f,7));
-        barEntries.add(new BarEntry(35f,8));
-        barEntries.add(new BarEntry(40f,9));
+        List<DateForStatistic> saveList = new EasySave(sBaseActivity.getBaseContext()).retrieveList(
+                Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
 
-        BarDataSet barDataSet = new BarDataSet(barEntries,sBaseActivity.getResources().getString(R.string.app_name));
+        if(saveList!= null && !saveList.isEmpty()){
+            ArrayList<BarEntry> barEntries = new ArrayList<>();
+            ArrayList<String> dateList = new ArrayList<>();
 
-        ArrayList<String> dateList = new ArrayList<>();
+            for (int i = 0; i < saveList.size(); i++) {
+                barEntries.add(new BarEntry(saveList.get(i).getValue(),i));
+                dateList.add(saveList.get(i).getDate());
+            }
 
-        dateList.add("april 15");
-        dateList.add("april 16");
-        dateList.add("april 17");
-        dateList.add("april 18");
-        dateList.add("april 19");
-        dateList.add("april 15");
-        dateList.add("april 16");
-        dateList.add("april 17");
-        dateList.add("april 18");
-        dateList.add("april 19");
+//        barEntries.add(new BarEntry(20f,1));
+//        barEntries.add(new BarEntry(25f,2));
+//        barEntries.add(new BarEntry(30f,3));
+//        barEntries.add(new BarEntry(35f,4));
+//        barEntries.add(new BarEntry(40f,5));
+//        barEntries.add(new BarEntry(20f,6));
+//        barEntries.add(new BarEntry(25f,7));
+//        barEntries.add(new BarEntry(30f,8));
+//        barEntries.add(new BarEntry(35f,9));
+//        barEntries.add(new BarEntry(40f,10));
 
-        BarData barData = new BarData(dateList,barDataSet);
+            Collections.reverse(barEntries);
 
-        barGraph.setData(barData);
-        barGraph.setTouchEnabled(true);
-        barGraph.setDragEnabled(true);
-        barGraph.setScaleEnabled(true);
-        barGraph.invalidate();
-        barGraph.setDrawBarShadow(false);
-        barGraph.setDrawValueAboveBar(true);
+            BarDataSet barDataSet = new BarDataSet( barEntries,sBaseActivity.getResources().getString(R.string.app_name));
+
+//        ArrayList<String> dateList = new ArrayList<>();
+//
+//        dateList.add("april 15");
+//        dateList.add("april 16");
+//        dateList.add("april 17");
+//        dateList.add("april 18");
+//        dateList.add("april 19");
+//        dateList.add("april 15");
+//        dateList.add("april 16");
+//        dateList.add("april 17");
+//        dateList.add("april 18");
+//        dateList.add("april 19");
+
+            Collections.reverse(dateList);
+            BarData barData = new BarData(dateList,barDataSet);
+
+            barGraph.setData(barData);
+            barGraph.setTouchEnabled(true);
+            barGraph.setDragEnabled(true);
+            barGraph.setScaleEnabled(true);
+            barGraph.invalidate();
+            barGraph.setDrawBarShadow(false);
+            barGraph.setDrawValueAboveBar(true);
 
 
 //        barGraph.getDescription().setEnabled(false);
 
-        // if more than 60 entries are displayed in the chart, no values will be
-        // drawn
-        barGraph.setMaxVisibleValueCount(5);
+            // if more than 60 entries are displayed in the chart, no values will be
+            // drawn
+            barGraph.setMaxVisibleValueCount(7);
 
-        // scaling can now only be done on x- and y-axis separately
-        barGraph.setPinchZoom(true);
-        barGraph.setBorderWidth(5f);
+            // scaling can now only be done on x- and y-axis separately
+            barGraph.setPinchZoom(true);
+            barGraph.setBorderWidth(5f);
+            barGraph.setDrawHighlightArrow(true);
 
-        barGraph.setDrawGridBackground(false);
-        barGraph.animateXY(1500,1500);
+            barGraph.setDrawGridBackground(false);
+            barGraph.animateXY(1500,1500);
+        }
+
+
 
 
 

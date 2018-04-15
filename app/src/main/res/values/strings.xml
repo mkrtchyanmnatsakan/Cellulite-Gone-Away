@@ -1,5 +1,12 @@
 <resources>
     <string name="app_name">Cellulite Gone Away</string>
     <string name="statistics_text">Statistics</string>
+    <string name="info_text">Cellulite Gone Away app is designed to make your life healthier.
+        You can burn your calories with the help of Cellulite Gone Away.
+        Just start your seanse by clicking on Start Seanse.
+        Each 5 minutes your phone will vibrate and burn your calories.
+        The full course duration is 2 months. With the help of charts you can see your monthly
+        activities. You will receive notifcations to run your course.
+        Everytime you can switch on/off notification.</string>
     <string name="text_for_inactive">The "Cellulite Gone Away" is inactive now. It will activate again after execution time because app should burn your calories in appropriate time. Thanks for being with us!</string>
 </resources>
