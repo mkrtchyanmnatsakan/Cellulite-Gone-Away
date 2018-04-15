@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Cellulite Gone Away</string>
+    <string name="statistics_text">Statistics</string>
+    <string name="text_for_inactive">The "Cellulite Gone Away" is inactive now. It will activate again after execution time because app should burn your calories in appropriate time. Thanks for being with us!</string>
 </resources>

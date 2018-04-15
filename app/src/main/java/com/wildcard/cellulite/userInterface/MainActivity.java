@@ -1,30 +1,71 @@
 package com.wildcard.cellulite.userInterface;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicBlur;
+import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.pixplicity.easyprefs.library.Prefs;
 import com.wildcard.cellulite.R;
+import com.wildcard.cellulite.constantValue.Constants;
+import com.wildcard.cellulite.receiver.AlarmReceiver;
 
-public class MainActivity extends BaseActivity implements View.OnClickListener {
+import org.angmarch.views.NiceSpinner;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+
+public class MainActivity extends BaseActivity implements View.OnClickListener,AdapterView.OnItemSelectedListener {
+
+    private static final int FIVE_SECONDS = 5000;
+    //TODO CHANGE TIME TO 6 HOUR
+    private static final int TIME_ALARM_SECONDS = 60;
     private ImageView imageview;
     private RelativeLayout homeRelativeLayout;
+    private LinearLayout inactiveLayout;
     private RelativeLayout statisticsRelativeLayout;
+    private RelativeLayout spinnerRelative;
+    private RelativeLayout playScenesRelative;
     private TextView statisticsTextView;
     private TextView homeTextView;
     private TextView infoTextView;
     private TextView videoTextView;
+    private TextView timeTextView;
     private RelativeLayout infoRelativeLayout;
     private RelativeLayout videoRelativeLayout;
+    private NiceSpinner spinner;
+    private ArrayList<String> spinnerList;
+    private  Handler handler;
+    public static String TODAY_DATE;
+
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,9 +73,143 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         setContentView(R.layout.activity_main);
         initViews();
 
+        String dataCreate = Prefs.getString(Constants.CREATE_APP_DATA,"");
+
+        Toast.makeText(this, dataCreate, Toast.LENGTH_SHORT).show();
+
+        if(dataCreate == null || dataCreate.isEmpty()){
+            String dataCreated = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            Prefs.putString(Constants.CREATE_APP_DATA,dataCreated);
+          //  Toast.makeText(this, "new data " + dataCreated, Toast.LENGTH_SHORT).show();
+        }else {
+            validateDateTime(dataCreate);
+        }
+
+
+        TODAY_DATE = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+      //  Toast.makeText(this, TODAY_DATE, Toast.LENGTH_SHORT).show();
+        Log.e("tiem = ", TODAY_DATE);
+
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date strDate = null;
+        try {
+            strDate = sdf.parse("2018-04-14 02:38:27");
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        long defTime = System.currentTimeMillis() - strDate.getTime();
+
+      long difDay =   defTime / (24 * 60 * 60 * 1000);
+
+
+        Log.e("defTime = " , defTime + "" + " day = " + difDay);
+//        if (System.currentTimeMillis() > strDate.getTime()) {
+//
+//        }
+
+
+
+    }
+
+    private void validateDateTime(String time){
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Date strDate = null;
+        try {
+            strDate = sdf.parse(time);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        long defTime = System.currentTimeMillis() - strDate.getTime();
+
+        long difDay =   defTime / (24 * 60 * 60 * 1000);
+
+        if(difDay >= 1){
+            String newDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            Prefs.putString(Constants.CREATE_APP_DATA,newDate);
+        }
+
+    }
+
+
+    private void createAlarmRecever(){
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+
+        Intent notificationIntent = new Intent(this, AlarmReceiver.class);
+        PendingIntent broadcast = PendingIntent.getBroadcast(this, 100, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.SECOND, TIME_ALARM_SECONDS);
+        alarmManager.setExact(AlarmManager.RTC_WAKEUP, cal.getTimeInMillis(), broadcast);
+
+
+    }
+
+    public void reverseTimer(long Seconds,final TextView tv){
+
+        scheduleVibrator();
+
+        new CountDownTimer(Seconds* 1000, 1000) {
+
+            public void onTick(long millisUntilFinished) {
+                long seconds =  millisUntilFinished / 1000;
+                long minutes = seconds / 60;
+                seconds = seconds % 60;
+                tv.setText( String.format("%02d", minutes)
+                        + ":" + String.format("%02d", seconds));
+            }
+
+            public void onFinish() {
+                tv.setText("00:00");
+                Prefs.putBoolean(Constants.IS_INACTIVE,true);
+                spinnerRelative.setVisibility(View.GONE);
+                inactiveLayout.setVisibility(View.VISIBLE);
+                playScenesRelative.setClickable(false);
+                playScenesRelative.setEnabled(false);
+
+                createAlarmRecever();
+                handler.removeCallbacksAndMessages(null);
+            }
+        }.start();
     }
 
     private void initViews(){
+
+        inactiveLayout = findViewById(R.id.inactive_layout);
+        spinnerRelative = findViewById(R.id.spinner_relative);
+        playScenesRelative = findViewById(R.id.play_scenes_relative);
+        timeTextView = findViewById(R.id.time_text_view);
+
+        if(Prefs.getBoolean(Constants.IS_INACTIVE,false)){
+            inactiveLayout.setVisibility(View.VISIBLE);
+            spinnerRelative.setVisibility(View.GONE);
+            playScenesRelative.setClickable(false);
+            playScenesRelative.setEnabled(false);
+            timeTextView.setText("00:00");
+        }else {
+            timeTextView.setText("01:25");
+            playScenesRelative.setClickable(true);
+            playScenesRelative.setEnabled(true);
+            inactiveLayout.setVisibility(View.GONE);
+            spinnerRelative.setVisibility(View.VISIBLE);
+        }
+        spinner = findViewById(R.id.nice_spinner);
+         handler = new Handler();
+
+        spinnerList = new ArrayList<>();
+        spinnerList.add("Less than 70 Kg");
+        spinnerList.add("More than 70 Kg");
+        spinner.attachDataSource(spinnerList);
+        spinner.setSelectedIndex(0);
+        spinner.setBackgroundColor(getResources().getColor(R.color.transparent));
+        spinner.setOnItemSelectedListener(this);
+
+
+
+        playScenesRelative.setOnClickListener(this);
         imageview = findViewById(R.id.image_view);
         statisticsTextView = findViewById(R.id.statistics_text_view);
         homeTextView = findViewById(R.id.home_text_view);
@@ -116,6 +291,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         }
 
+
         homeRelativeLayout.setClickable(false);
         homeRelativeLayout.setEnabled(false);
         homeTextView.setTextColor(getResources().getColor(R.color.colorPrimary));
@@ -134,6 +310,53 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         videoRelativeLayout.setClickable(true);
 
         videoTextView.setTextColor(getResources().getColor(R.color.colorWhite));
+    }
+
+    public void scheduleVibrator() {
+        handler.postDelayed(new Runnable() {
+            public void run() {
+                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    if (Build.VERSION.SDK_INT >= 26) {
+                        v.vibrate(VibrationEffect.createOneShot(2500,VibrationEffect.DEFAULT_AMPLITUDE));
+                    }
+                }else{
+                    //deprecated in API 26
+                    v.vibrate(2500);
+                }
+                //Toast.makeText(MainActivity.this, "5", Toast.LENGTH_SHORT).show();
+                handler.postDelayed(this, FIVE_SECONDS);
+            }
+        }, FIVE_SECONDS);
+    }
+
+
+
+
+    private long parseStringToSecond(String time) throws ParseException{
+
+        DateFormat format=new SimpleDateFormat("mm:ss");
+// format.parse(timee).getSeconds();
+        int seconds = format.parse(time).getHours()*3600+format.parse(time).getMinutes()*60+format.parse(time).getSeconds();
+
+        String[] parts = time.split(":");
+        long millis = TimeUnit.MINUTES.toSeconds(Long.parseLong(parts[0])) + Long.parseLong(parts[1]);
+
+        System.out.println(millis+" in Seconds");
+
+//System.out.println(seconds + " Converted to Seconds");
+        long s_hour = TimeUnit.SECONDS.toHours(millis);
+        long tempSec = millis - (TimeUnit.HOURS.toSeconds(s_hour));
+       // long s_minute = TimeUnit.SECONDS.toMinutes(tempSec) ;
+       // long tempSec1 = tempSec - (TimeUnit.MINUTES.toSeconds(s_minute));
+        long s_seconds = TimeUnit.SECONDS.toSeconds(tempSec);
+//        System.out.println(s_hour  + " in Hours");
+//        System.out.println(tempSec+" Which is a reminder");
+//        System.out.println(s_minute + " in Minutes");
+//        System.out.println(tempSec1+" in Seconds");
+
+        return s_seconds;
     }
 
     @Override
@@ -199,6 +422,20 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 infoTextView.setTextColor(getResources().getColor(R.color.colorWhite));
                 videoTextView.setTextColor(getResources().getColor(R.color.colorWhite));
 
+                break;
+
+            case R.id.play_scenes_relative:
+
+                try {
+
+                    reverseTimer(parseStringToSecond(timeTextView.getText().toString()),timeTextView);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                //
+              //  handler.removeCallbacksAndMessages(null);
+
+             //   Toast.makeText(this, "play_scenes_relative", Toast.LENGTH_SHORT).show();
                 break;
 
             case R.id.info_relative_layout:
@@ -275,5 +512,25 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
                 break;
         }
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+        if(position == 0){
+            timeTextView.setText("01:25");
+        }else {
+            timeTextView.setText("02:25");
+        }
+        Toast.makeText(this, spinnerList.get(position), Toast.LENGTH_SHORT).show();
+
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> parent) {
+
+    }
+
+    public  String convertDate(String dateInMilliseconds,String dateFormat) {
+        return android.text.format.DateFormat.format(dateFormat, Long.parseLong(dateInMilliseconds)*1000).toString();
     }
 }
