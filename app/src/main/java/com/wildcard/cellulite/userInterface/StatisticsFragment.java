@@ -108,16 +108,16 @@ public class StatisticsFragment extends Fragment {
 
 //        ArrayList<String> dateList = new ArrayList<>();
 //
-//        dateList.add("april 15");
-//        dateList.add("april 16");
-//        dateList.add("april 17");
-//        dateList.add("april 18");
-//        dateList.add("april 19");
-//        dateList.add("april 15");
-//        dateList.add("april 16");
-//        dateList.add("april 17");
-//        dateList.add("april 18");
-//        dateList.add("april 19");
+//        dateList.add("Apr 17");
+//        dateList.add("Apr 18");
+//        dateList.add("Apr 19");
+//        dateList.add("Apr 20");
+//        dateList.add("Apr 21");
+//        dateList.add("Apr 22");
+//        dateList.add("Apr 23");
+//        dateList.add("Apr 24");
+//        dateList.add("Apr 25");
+//        dateList.add("Apr 26");
 
             Collections.reverse(dateList);
             BarData barData = new BarData(dateList,barDataSet);

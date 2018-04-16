@@ -5,8 +5,10 @@ import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -47,7 +49,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
 
     private static final int FIVE_SECONDS = 5000;
     //TODO CHANGE TIME TO 6 HOUR
-    private static final int TIME_ALARM_SECONDS = 60;
+    private static final int TIME_ALARM_SECONDS = 60 * 60 * 6;
     private ImageView imageview;
     private RelativeLayout homeRelativeLayout;
     private LinearLayout inactiveLayout;
@@ -65,9 +67,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
     private ArrayList<String> spinnerList;
     private  Handler handler;
     public static String TODAY_DATE;
-
-
-
+    private MediaPlayer player;
+    private CountDownTimer countDounTimer;
+    private Vibrator v;
 
 
     @SuppressLint("SimpleDateFormat")
@@ -76,6 +78,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         initViews();
+         v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+
 
         String dataCreate = Prefs.getString(Constants.CREATE_APP_DATA,"");
 
@@ -179,11 +184,37 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
 
     }
 
+    private void playBeep() {
+        try {
+            player = new MediaPlayer();
+
+            if (player.isPlaying()) {
+                player.stop();
+                player.release();
+
+            }
+            AssetFileDescriptor descriptor = getAssets().openFd("ultra.mp3");
+            Log.e("descriptor = " , descriptor.getFileDescriptor().toString());
+            player.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
+            descriptor.close();
+
+            player.prepare();
+            player.setVolume(1f, 1f);
+            player.setLooping(true);
+            player.start();
+        } catch (Exception e) {
+            e.printStackTrace();
+//            Log.e("printStackTrace = " , e.getMessage());
+        }
+    }
+
+
     public void reverseTimer(long Seconds,final TextView tv){
 
         scheduleVibrator();
+        playBeep();
 
-        new CountDownTimer(Seconds* 1000, 1000) {
+      countDounTimer = new CountDownTimer(Seconds* 1000, 1000) {
 
             @SuppressLint("DefaultLocale")
             public void onTick(long millisUntilFinished) {
@@ -194,7 +225,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
                         + ":" + String.format("%02d", seconds));
             }
 
+
             public void onFinish() {
+                if(player != null && player.isPlaying()){
+                    player.stop();
+                    player.release();
+                    player = null;
+                }
                 tv.setText("00:00");
                 Prefs.putBoolean(Constants.IS_INACTIVE,true);
                 spinnerRelative.setVisibility(View.GONE);
@@ -265,7 +302,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
         infoRelativeLayout.setOnClickListener(this);
        // videoRelativeLayout.setOnClickListener(this);
 
-        setUpBlurEffect();
+        //setUpBlurEffect();
 
 
         new Handler().postDelayed(new Runnable() {
@@ -273,10 +310,13 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
             public void run() {
 
                 List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
-              long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
-                long convertMilisecond = timeSecund;
+                if(saveList!=null && !saveList.isEmpty() && saveList.size()>1){
+                    long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
+                    long convertMilisecond = timeSecund;
 
-                timeTextView.setText(convertDate(String.valueOf(convertMilisecond),"mm:ss"));
+                    timeTextView.setText(convertDate(String.valueOf(convertMilisecond),"mm:ss"));
+                }
+
 
             }
         },500);
@@ -368,7 +408,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
     public void scheduleVibrator() {
         handler.postDelayed(new Runnable() {
             public void run() {
-                Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     if (Build.VERSION.SDK_INT >= 26) {
@@ -433,6 +472,51 @@ private long parseStringToSecondAndSecund(String time, long seconds){
 //        System.out.println(tempSec1+" in Seconds");
 
         return s_seconds;
+    }
+
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if(countDounTimer!= null){
+            countDounTimer.cancel();
+        }
+
+
+
+        if(handler!= null){
+            handler.removeCallbacksAndMessages(null);
+        }
+
+
+
+
+
+        if(player != null && player.isPlaying()){
+            player.stop();
+            player.release();
+            player = null;
+        }
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+
+        if(handler!= null){
+            handler.removeCallbacksAndMessages(null);
+        }
+        if(countDounTimer!= null){
+            countDounTimer.cancel();
+        }
+        if(player != null && player.isPlaying()){
+            player.stop();
+            player.release();
+            player = null;
+        }
+
     }
 
     @Override
