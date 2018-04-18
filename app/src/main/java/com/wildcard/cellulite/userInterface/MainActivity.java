@@ -148,7 +148,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
         long difDay =   defTime / (24 * 60 * 60 * 1000);
 
         if(difDay >= 1){
-            @SuppressLint("SimpleDateFormat") String newDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
+            @SuppressLint("SimpleDateFormat") final String newDate = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date());
             @SuppressLint("SimpleDateFormat") final String newDateForSaveList = new SimpleDateFormat("MMM-dd").format(new Date());
             //Toast.makeText(this, newDateForSaveList, Toast.LENGTH_SHORT).show();
 
@@ -157,8 +157,25 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
                 public void run() {
                     List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(
                             Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
-                    if(saveList.size()>1){
-                        saveList.add(new DateForStatistic(newDateForSaveList,saveList.get(saveList.size()-1).getValue()+5));
+
+                    List<DateForStatistic> list = new ArrayList<DateForStatistic>();
+
+                    for (DateForStatistic dd:saveList){
+                        list.add(dd);
+                    }
+
+                    if(list.size()>=1){
+                        int sazeInt = list.size();
+                        DateForStatistic dateForStatistic = list.get(sazeInt-1);
+                        float oldValu = dateForStatistic.getValue();
+                        float newValu = oldValu+1;
+                        DateForStatistic newDateForStatics = new DateForStatistic(newDateForSaveList,newValu);
+                        list.add(newDateForStatics);
+                        Prefs.putBoolean(Constants.IS_ADD_NEW_DATE,true);
+                        Prefs.putBoolean(Constants.IS_NEW_TIME_DATE_1,false);
+                        Prefs.putBoolean(Constants.IS_NEW_TIME_DATE_2,false);
+                        new EasySave(getBaseContext()).saveList(Constants.SAVE_DATE_FOR_STATISTICS,list);
+                       // saveList.add(new DateForStatistic(newDateForSaveList,saveList.get(saveList.size()-1).getValue()+5));
 
                     }
                 }
@@ -232,6 +249,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
                     player.release();
                     player = null;
                 }
+                Prefs.putBoolean(Constants.IS_ADD_NEW_DATE,false);
                 tv.setText("00:00");
                 Prefs.putBoolean(Constants.IS_INACTIVE,true);
                 spinnerRelative.setVisibility(View.GONE);
@@ -266,7 +284,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
             playScenesRelative.setEnabled(false);
             timeTextView.setText("00:00");
         }else {
-            timeTextView.setText("01:25");
+            timeTextView.setText(Prefs.getString(Constants.NEW_TIME_DATE_1,"01:25"));
             playScenesRelative.setClickable(true);
             playScenesRelative.setEnabled(true);
             inactiveLayout.setVisibility(View.GONE);
@@ -304,22 +322,26 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
 
         //setUpBlurEffect();
 
+        if(!Prefs.getBoolean(Constants.IS_INACTIVE,false)){
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
+                    List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
+                    if(saveList!=null && !saveList.isEmpty() && saveList.size()>1){
+                        long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
+                        long convertMilisecond = timeSecund;
 
-                List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
-                if(saveList!=null && !saveList.isEmpty() && saveList.size()>1){
-                    long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
-                    long convertMilisecond = timeSecund;
+                        timeTextView.setText(convertDate(String.valueOf(convertMilisecond),"mm:ss"));
+                    }
 
-                    timeTextView.setText(convertDate(String.valueOf(convertMilisecond),"mm:ss"));
+
                 }
+            },500);
+        }
 
 
-            }
-        },500);
+
     }
 
     private void setUpBlurEffect(){
@@ -436,7 +458,7 @@ private long parseStringToSecondAndSecund(String time, long seconds){
 
 //System.out.println(seconds + " Converted to Seconds");
     long s_hour = TimeUnit.SECONDS.toHours(millis);
-    long tempSec = millis - (TimeUnit.HOURS.toSeconds(s_hour));
+    long tempSec = millis + (TimeUnit.HOURS.toSeconds(s_hour));
     // long s_minute = TimeUnit.SECONDS.toMinutes(tempSec) ;
     // long tempSec1 = tempSec - (TimeUnit.MINUTES.toSeconds(s_minute));
     long s_seconds = TimeUnit.SECONDS.toSeconds(tempSec);
@@ -463,13 +485,9 @@ private long parseStringToSecondAndSecund(String time, long seconds){
 //System.out.println(seconds + " Converted to Seconds");
         long s_hour = TimeUnit.SECONDS.toHours(millis);
         long tempSec = millis - (TimeUnit.HOURS.toSeconds(s_hour));
-       // long s_minute = TimeUnit.SECONDS.toMinutes(tempSec) ;
-       // long tempSec1 = tempSec - (TimeUnit.MINUTES.toSeconds(s_minute));
+
         long s_seconds = TimeUnit.SECONDS.toSeconds(tempSec);
-//        System.out.println(s_hour  + " in Hours");
-//        System.out.println(tempSec+" Which is a reminder");
-//        System.out.println(s_minute + " in Minutes");
-//        System.out.println(tempSec1+" in Seconds");
+
 
         return s_seconds;
     }
@@ -683,25 +701,43 @@ private long parseStringToSecondAndSecund(String time, long seconds){
     }
 
     @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+    public void onItemSelected(AdapterView<?> parent, View view, final int position, long id) {
         if(position == 0){
-            timeTextView.setText("01:25");
+            timeTextView.setText(Prefs.getString(Constants.NEW_TIME_DATE_1,"01:25"));
         }else {
-            timeTextView.setText("02:25");
+            timeTextView.setText(Prefs.getString(Constants.NEW_TIME_DATE_2,"02:25"));
         }
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
+        if(Prefs.getBoolean(Constants.IS_ADD_NEW_DATE,false)){
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
 
-                List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
-                long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
-                long convertMilisecond = timeSecund;
+                    List<DateForStatistic> saveList = new EasySave(getBaseContext()).retrieveList(Constants.SAVE_DATE_FOR_STATISTICS,DateForStatistic[].class);
+                    long timeSecund =   parseStringToSecondAndSecund(timeTextView.getText().toString(),(saveList.size()-1)*5);
+                    long convertMilisecond = timeSecund;
+                    String newTime = convertDate(String.valueOf(convertMilisecond),"mm:ss");
+                    timeTextView.setText(newTime);
+                    if(position == 0){
+                        if(!Prefs.getBoolean(Constants.IS_NEW_TIME_DATE_1,false)){
+                            Prefs.putString(Constants.NEW_TIME_DATE_1,newTime);
+                            Prefs.putBoolean(Constants.IS_NEW_TIME_DATE_1,true);
+                        }
 
-                timeTextView.setText(convertDate(String.valueOf(convertMilisecond),"mm:ss"));
+                    }else {
+                        if(!Prefs.getBoolean(Constants.IS_NEW_TIME_DATE_2,false)){
+                            Prefs.putString(Constants.NEW_TIME_DATE_2,newTime);
+                            Prefs.putBoolean(Constants.IS_NEW_TIME_DATE_2,true);
+                        }
 
-            }
-        },500);
+
+                    }
+
+                }
+            },100);
+        }
+
+
        // Toast.makeText(this, spinnerList.get(position), Toast.LENGTH_SHORT).show();
 
     }
