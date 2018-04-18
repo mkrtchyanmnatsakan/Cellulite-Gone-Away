@@ -14,4 +14,5 @@ public interface Constants {
     String IS_NEW_TIME_DATE_1 = "IS_NEW_TIME_DATE_1";
     String NEW_TIME_DATE_2 = "NEW_TIME_DATE_2";
     String IS_NEW_TIME_DATE_2 = "IS_NEW_TIME_DATE_2";
+    String  IS_FREST_VIBRATION = "IS_FREST_VIBRATION";
 }

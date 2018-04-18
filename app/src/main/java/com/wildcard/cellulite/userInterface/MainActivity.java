@@ -27,6 +27,10 @@ import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.AdView;
+import com.google.android.gms.ads.InterstitialAd;
 import com.pixplicity.easyprefs.library.Prefs;
 import com.wildcard.cellulite.R;
 import com.wildcard.cellulite.constantValue.Constants;
@@ -70,6 +74,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
     private MediaPlayer player;
     private CountDownTimer countDounTimer;
     private Vibrator v;
+    private AdView mAdView;
+    InterstitialAd mInterstitialAd;
+
 
 
     @SuppressLint("SimpleDateFormat")
@@ -77,6 +84,72 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        mAdView = (AdView) findViewById(R.id.adView);
+//        mAdView.setAdSize(AdSize.BANNER);
+      //  mAdView.setAdUnitId(getString(R.string.banner_home_footer));
+
+        AdRequest adRequest = new AdRequest.Builder()
+                .addTestDevice(AdRequest.DEVICE_ID_EMULATOR)
+                // Check the LogCat to get your test device ID
+                .addTestDevice("C04B1BFFB0774708339BC273F8A43708")
+                .build();
+
+        mAdView.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+            }
+
+            @Override
+            public void onAdClosed() {
+                //Toast.makeText(getApplicationContext(), "Ad is closed!", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+               // Toast.makeText(getApplicationContext(), "Ad failed to load! error code: " + errorCode, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAdLeftApplication() {
+               // Toast.makeText(getApplicationContext(), "Ad left application!", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onAdOpened() {
+                super.onAdOpened();
+            }
+        });
+
+        mAdView.loadAd(adRequest);
+
+
+
+
+        mInterstitialAd = new InterstitialAd(this);
+
+        // set the ad unit ID
+        mInterstitialAd.setAdUnitId(getString(R.string.interstitial_full_screen));
+
+        AdRequest adRequestFull = new AdRequest.Builder()
+                .build();
+
+        // Load ads into Interstitial Ads
+        mInterstitialAd.loadAd(adRequestFull);
+
+        mInterstitialAd.setAdListener(new AdListener() {
+            public void onAdLoaded() {
+                showInterstitial();
+            }
+        });
+
+
+
+
+
+
+
+
         initViews();
          v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
 
@@ -132,6 +205,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
 
 
 
+    }
+
+    private void showInterstitial() {
+        if (mInterstitialAd.isLoaded()) {
+            mInterstitialAd.show();
+        }
     }
 
     private void validateDateTime(String time){
@@ -257,12 +336,16 @@ public class MainActivity extends BaseActivity implements View.OnClickListener,A
                 playScenesRelative.setClickable(false);
                 playScenesRelative.setEnabled(false);
 
-                @SuppressLint("SimpleDateFormat") String saveDateString = new SimpleDateFormat("MMM-dd").format(new java.util.Date());
 
-                List<DateForStatistic> dateForStatisticLists = new ArrayList<>();
-                dateForStatisticLists.add(new DateForStatistic(saveDateString,5f));
+                if(!Prefs.getBoolean(Constants.IS_FREST_VIBRATION,false)){
+                    @SuppressLint("SimpleDateFormat") String saveDateString = new SimpleDateFormat("MMM-dd").format(new java.util.Date());
 
-                new EasySave(getBaseContext()).saveList(Constants.SAVE_DATE_FOR_STATISTICS, dateForStatisticLists);
+                    List<DateForStatistic> dateForStatisticLists = new ArrayList<>();
+                    dateForStatisticLists.add(new DateForStatistic(saveDateString,5f));
+                    new EasySave(getBaseContext()).saveList(Constants.SAVE_DATE_FOR_STATISTICS, dateForStatisticLists);
+                    Prefs.putBoolean(Constants.IS_FREST_VIBRATION,true);
+                }
+
 
                 createAlarmRecever();
                 handler.removeCallbacksAndMessages(null);
@@ -519,7 +602,27 @@ private long parseStringToSecondAndSecund(String time, long seconds){
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        if (mAdView != null) {
+            mAdView.resume();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (mAdView != null) {
+            mAdView.destroy();
+        }
+        super.onDestroy();
+    }
+
+    @Override
     protected void onPause() {
+
+        if (mAdView != null) {
+            mAdView.pause();
+        }
         super.onPause();
 
 

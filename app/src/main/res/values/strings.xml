@@ -1,6 +1,9 @@
 <resources>
     <string name="app_name">Cellulite Gone Away</string>
     <string name="statistics_text">Statistics</string>
+    <string name="admob_app_id">ca-app-pub-5086557491618445~6686366198</string>
+    <string name="banner_home_footer">ca-app-pub-5086557491618445/7724115697</string>
+    <string name="interstitial_full_screen">ca-app-pub-5086557491618445/6083730966</string>
     <string name="info_text">Cellulite Gone Away app is designed to make your life healthier.
         You can burn your calories with the help of Cellulite Gone Away.
         Just start your seanse by clicking on Start Seanse.

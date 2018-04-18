@@ -30,6 +30,6 @@ dependencies {
     compile 'com.github.PhilJay:MPAndroidChart:v2.2.4'
     compile 'com.github.Guilherme-HRamos:Easy-Save:1.01'
     compile 'com.afollestad.material-dialogs:commons:0.9.4.5'
-
+    compile 'com.google.android.gms:play-services-ads:15.0.0'
     testCompile 'junit:junit:4.12'
 }
